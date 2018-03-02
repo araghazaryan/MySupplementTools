@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Mar  1 14:52:07 2018
-
 @author: ghaza
+
+The code to parse the dataset for car complaints to prepare it for word2vec analysis. Entries are stripped of their title, 
+lowercased, all non-alphabetical entries are omitted. All is pickle-saved into one file.  
 """
 
 import os
