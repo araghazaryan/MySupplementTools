@@ -15,7 +15,6 @@ The recording resumes in cycle
 Created on Mar 24 00:15:35 2018
 @author: Ara Ghazaryan
 """
-
 import re
 import datetime
 import os
@@ -24,7 +23,9 @@ from PIL import Image, ImageTk
 from tkinter import Tk, BOTH
 from tkinter.ttk import Frame, Label, Button, Style
 
-qualityflag = 1 # 0  640x 352  capture resolution 
+camip  = '192.168.178.87'
+camip  = '192.168.0.26'
+qualityflag = 0 # 0  640x 352  capture resolution 
                 # 1 1280 x 720
 idletime = 7 # idle time threshold
 maxduration = 300
@@ -60,19 +61,22 @@ class MakeAChoice(Frame):
         
         Style().configure("TFrame", background="#CCC")
         
-        if not QFlag:
-            imLeft = ImageTk.PhotoImage(Image.open("general.png"))
-            imRight = ImageTk.PhotoImage(Image.open("violence.png"))
-            Button1 = Button(self, text="General", command= self.general)
-            Button2 = Button(self,  text="Violence", command= self.violence)
-            lbl2 = Label(text="Choose the Scene Mode", width=100, background="#CCC", foreground="black", font=("Courier", 12))
-        else:
-            imLeft = ImageTk.PhotoImage(Image.open("norec.png"))
-            imRight = ImageTk.PhotoImage(Image.open("rec.png"))
-            Button1 = Button(self, text="Cancel", command= self.general)
-            Button2 = Button(self,  text="Record", command= self.violence)
-            lbl2 = Label(text="Are you ready to rec?", width=100, background="#CCC", foreground="black", font=("Courier", 12))
-        # positionning of components 
+        # list of texts for labels above the dual choice question box
+        textbase = ["Choose the Scene Mode",  
+                    "Are you ready to rec?",
+                    "Do you need a preview?"]
+        # list of texts on left and right button, respectively 
+        buttonbase = ['General','Violence',
+                      'Cancel','Record',
+                      'Preview', 'Record']
+        # files of images should be 80x80 named qNl.png and qNr.png 
+        # for left and right Nth question, respectively
+        imLeft = ImageTk.PhotoImage(Image.open('q' +str(QFlag)+'l.png'))
+        imRight = ImageTk.PhotoImage(Image.open('q' +str(QFlag)+'r.png'))
+        lbl2 = Label(text=textbase[QFlag-1], width=100, background="#CCC", foreground="black", font=("Courier", 12))    
+        Button1 = Button(self, text=buttonbase[QFlag*2-2], command= self.leftbut)
+        Button2 = Button(self,  text=buttonbase[QFlag*2-1], command= self.rightbut)
+                # positionning of components 
         label1 = Label(self, image=imLeft)
         label1.image = imLeft
         label1.place(x=21, y=27)        
@@ -82,13 +86,13 @@ class MakeAChoice(Frame):
         Button1.place(x=25, y=117)
         Button2.place(x=151, y=117)
         lbl2.place(x=18, y=3)
-    def violence(self):
-        self.m = 1
-        self.master.destroy()
-    def general(self):
+    def leftbut(self):
         self.m = 0
         self.master.destroy()
-        
+    def rightbut(self):
+        self.m = 1
+        self.master.destroy()        
+
 def question(QFlag):
     root = Tk()
     root.geometry("250x148+300+300")
@@ -97,15 +101,38 @@ def question(QFlag):
     return thechoice.m 
 
 
+
+
+# *************************    STARTs HERE    *******************************
+# Ask for preview
+QFlag = 3
+previewChoice = question(QFlag) 
+if not previewChoice:
+    import cv2    
+    if qualityflag:
+        captstream = cv2.VideoCapture("rtsp://admin:admin@" +camip+"/11") # connect to remote IP cam
+    else:
+        captstream = cv2.VideoCapture("rtsp://admin:admin@" +camip+"/12") # connect to remote IP cam
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V') # fourcc = cv2.VideoWriter_fourcc(*'XVID') # Define the codec and create VideoWriter object
+    nochange = 1
+    while nochange:
+        ret, frame = captstream.read()
+        text = "Preview mode. press 'q' when ready"
+        cv2.putText(frame, text,(20, 40),cv2.FONT_HERSHEY_COMPLEX_SMALL,fontsize,(50,180,0))
+        cv2.imshow('frame',frame)  
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            nochange=0
+            break
+    captstream.release()
+    cv2.destroyAllWindows()
+    
 # qustion the scene mode
-QFlag = 0
+QFlag = 1
 scenechoice = question(QFlag) 
 # request confirmation to start recording
-QFlag = 1
+QFlag = 2
 rec =  question(QFlag)
-
 recflag = 0
-
 
 if rec:
     if scenechoice: 
@@ -115,9 +142,9 @@ if rec:
     import cv2
     import numpy as np
     if qualityflag:
-        captstream = cv2.VideoCapture("rtsp://admin:admin@192.168.178.87/11") # connect to remote IP cam
+        captstream = cv2.VideoCapture("rtsp://admin:admin@" +camip+"/11") # connect to remote IP cam
     else:
-        captstream = cv2.VideoCapture("rtsp://admin:admin@192.168.178.87/12") # connect to remote IP cam
+        captstream = cv2.VideoCapture("rtsp://admin:admin@" +camip+"/12") # connect to remote IP cam
     fourcc = cv2.VideoWriter_fourcc(*'MP4V') # fourcc = cv2.VideoWriter_fourcc(*'XVID') # Define the codec and create VideoWriter object
     ret, frame = captstream.read()
     if ret==True:
